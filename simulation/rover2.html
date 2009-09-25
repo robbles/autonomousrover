@@ -1,0 +1,223 @@
+<html> <head> <script type="text/javascript" src="processing.min.js"></script> <script type="text/javascript" src="init.js"></script> <style type="text/css"> body {background-color: black;} #wrapper { width:800; height:600; margin: 0 auto; border: 2px solid #888899; } #canvas {} </style> </head><body> <div id="code" style="display:none">
+/*-----------------------*/
+
+
+
+Rover rover;
+
+Path path;
+
+/* SETUP */
+void setup() {
+	size(800, 600);
+	smooth();
+	frameRate(30);
+	background(0);
+	rectMode(CENTER);
+    
+    // Generate a random path
+    path = new Path();
+    for(i=0; i<20; i++) {
+        path.addCheckPoint(random(1.0) * TWO_PI, random(100, 300), 50);
+    }
+    
+    rover = new Rover(400, 300, 0.0*TWO_PI, path);
+}
+
+
+
+/* MAIN LOOP */
+void draw() {
+	background(50);
+	
+	rover.loop();
+}
+
+
+
+
+/* CLASSES */
+class Rover {
+	float x;
+	float y;
+	float heading;
+	float speed;
+	Path path;
+	CheckPoint currentGoal;
+	float distance_traveled = 0;
+	
+	Rover(float x, float y, float heading, path) {
+		this.x = x;
+		this.y = y;
+		this.heading = heading;
+		this.speed = 0;
+		this.turnSpeed = 0.1;
+		path = path;
+		currentGoal = path.CheckPoints.shift();
+		currentGoal.setAbsolutePosition(x, y);
+	}
+	
+	void loop() {
+	    
+	    // Check to see if we're facing the right direction
+	    if(!onTrack()) {
+	        log_event('adjusting heading');
+	        // First try to get back to center of track
+	        adjustToPath();
+	        
+	    } 
+	    // Go full speed until reaching CheckPoint or detecting obstacle(s)
+	    else if(!nearCheckPoint()) {
+	        log_event('going to next CheckPoint');
+	        // On track, go to top speed
+	        accelerateToSpeed(5.0, 0.2);
+	        
+    	    
+	        if(detectObstacles()) {
+	            // TODO: tweak out / do something useful
+	            log_event('detecting an obstacle!');
+	        }
+	    }
+	    else {
+	        log_event('at CheckPoint, braking');
+	        brake(0.5);
+	        
+    	    if(abs(speed) == 0) {
+    	        // Clear distance traveled
+    	        distance_traveled = 0;
+    	        log_event('loading next CheckPoint');
+	            this.currentGoal = path.CheckPoints.shift();
+	            if(!currentGoal) {
+	                log_event('done course');
+	                stop();
+	            }
+	            currentGoal.setAbsolutePosition(x, y);
+	        }
+	    }
+	    
+	    
+	    physics();
+	    
+	    
+	    draw();
+	    
+	}
+	
+	boolean onTrack() {
+	    return abs(currentGoal.heading - heading) < turnSpeed;
+	}
+	
+	void adjustToPath() {
+	    
+        heading += turnSpeed * (currentGoal.heading - heading) / abs(currentGoal.heading - heading);
+	}
+	
+	boolean nearCheckPoint() {
+	    // TODO: use radius / obstacle stats to estimate a probability of being there
+	    return (distance_traveled >= (currentGoal.distance));
+	}
+	
+	boolean detectObstacles() {
+	    return false;
+	}
+	
+	void accelerateToSpeed(float speed, float acceleration) {
+	    if(this.speed < speed) {
+	        this.speed += acceleration;
+	    }
+	}
+	
+	void brake(deceleration) {
+	    if(speed > deceleration) {
+	        speed -= deceleration;
+	    } else {
+	        speed = 0;
+	    }
+	}
+	
+	void physics() {
+	    // Assuming the rover naturally slows down when coasting
+	    if(this.speed > 0) {
+	        this.speed -= 0.01;
+	    } else {
+	        this.speed = 0;
+	    }
+	    
+	    // Move the rover in the right direction based on its speed
+	    this.x += this.speed * cos(heading);
+		this.y += this.speed * sin(heading);
+		
+		distance_traveled += speed;
+	}
+	
+	void draw() {
+	    
+		pushMatrix();
+		translate(x, y);
+		rotate(heading);
+		// Wheels
+		fill(0);
+		stroke(255);
+		rect(0, -20, 30, 10);
+		rect(0, 20, 30, 10);
+		// Cart
+		fill(100);
+		rect(-5, 0, 60, 30);
+		// Center
+		ellipse(0, 0, 5, 5);
+		popMatrix();
+		
+		noFill();
+		stroke(0, 0, 255);
+		ellipse(currentGoal.absolute_x, currentGoal.absolute_y, 10, 10);
+	}	
+}
+
+class CheckPoint {
+    float heading;
+    float distance;
+    float radius;
+    float absolute_x;
+    float absolute_y;
+    
+    CheckPoint(float heading, float distance, float radius) {
+        this.heading = heading;
+        this.distance = distance;
+        this.radius = radius;
+    }
+    
+    void setAbsolutePosition(float x, float y) {
+        absolute_x = x + distance * cos(heading);
+        absolute_y = y + distance * sin(heading);
+    }
+}
+
+class Path {
+    
+    CheckPoint[] CheckPoints;
+    
+    Path(CheckPoint[] CheckPoints) {
+        CheckPoints = CheckPoints;
+    }
+    
+    Path() {
+        CheckPoints = new CheckPoint[];
+    }
+    
+    void addCheckPoint(float heading, float distance, float radius) {
+        CheckPoints.push(new CheckPoint(heading, distance, radius));
+    }
+}
+
+// Only log events when status is changing to avoid browser lag
+last_event = '';
+void log_event(event) {
+    if(last_event != event) {
+        last_event = event;
+        window.console ? console.log(event) : null;
+    }
+}
+
+
+/*-----------------------*/
+</div> <div id="wrapper"> <canvas id="canvas" src="code" width="800" height="600"></canvas> </div> </body> </html>
