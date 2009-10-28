@@ -13,6 +13,8 @@
 
 #define SERIAL_ENABLED 1
 
+#define EXTERNAL_INTERRUPTS 1
+
 /* Status LED */
 #define LED_PORT PORTB
 #define LED_DDR DDRB
@@ -87,6 +89,9 @@ volatile uint8_t i = 0;
 
 // Current checkpoint
 struct checkpoint *goal;
+
+// Encoder counts
+uint32_t encoder0, encoder1;
 
 /* Function prototypes */
 void init(void);

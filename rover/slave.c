@@ -23,22 +23,31 @@ void init(void) {
 	TIMSK1 = 0x00;
 	TIMSK2 = 0x00;
 	
-	//Set 8-bit timer 0 and PWM outputs OC0A(PD6) and OC0B(PD5) at clock speed
+	// Set 8-bit timer 0 and PWM outputs OC0A(PD6) and OC0B(PD5) at clock speed
 	TCCR0A = _BV(COM0A1) | _BV(COM0B1) | _BV(WGM00);
 	TCCR0B = _BV(CS00); 
 	MOTORL1 = MOTORL2 = 0;
 	
-	//Set 16-bit timer 1 and pwm outputs OC1A(PB1) and OC1B(PB2) at clock speed
+	// Set 16-bit timer 1 and pwm outputs OC1A(PB1) and OC1B(PB2) at clock speed
 	TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(WGM10);
 	TCCR1B = _BV(CS10); // clock speed, 8-bit phase correct PWM
 	MOTORR1 = MOTORR2 = 0;
 
-	//Set 8-bit timer 2 and PWM output OC2B(PD3) at clock speed / 1024
-	TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
-	TCCR2B = _BV(CS22) | _BV(CS21) | _BV(CS20); // timer will overflow every 16.32 ms (~61 Hz)
+	// Set 8-bit timer 2 and PWM output OC2B(PD3) at clock speed / 1024
+	//TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
+	//TCCR2B = _BV(CS22) | _BV(CS21) | _BV(CS20); // timer will overflow every 16.32 ms (~61 Hz)
+	// Values for OC2B should range from 23 - 30 for full rotation
 	
 	MOTORL_DDR |= _BV(MOTORL1_PIN) | _BV(MOTORL2_PIN);
 	MOTORR_DDR |= _BV(MOTORR1_PIN) | _BV(MOTORR2_PIN);
+	
+	#if(EXTERNAL_INTERRUPTS)
+	// Enable rising-edge external interrupts on INT0(pin 4) and INT1(pin 5)
+	// Warning, INT1 conflicts with OC2B (servo PWM output)
+	EICRA = _BV(ISC11) | _BV(ISC10) | _BV(ISC01) | _BV(ISC00);
+	EIMSK = _BV(INT1) | _BV(INT0);
+	
+	#endif
 	
 #if(TWI_ENABLED)
 
@@ -72,6 +81,9 @@ void init(void) {
 	
 	// Setup and start following path
 	goal = track;
+	
+	// Set encoder count to zero
+	encoder0 = encoder1 = 0;
 }
 
 int main(void) {
@@ -183,6 +195,7 @@ void command(uint8_t command, uint8_t data) {
 
 void twi_rx(uint8_t* buffer, int count) {
 	while(count) {
+		// TODO: don't read it backwards
 		rxBuffer[i++] = buffer[count--];
 		if(i == 2) {
 			command(rxBuffer[0], rxBuffer[1]);
@@ -196,6 +209,23 @@ void twi_tx(void) {
 }
 
 #endif
+
+
+#if(EXTERNAL_INTERRUPTS)
+
+SIGNAL(INT0_vect) {
+	encoder0++;
+	// Toggle the led to show interrupts happening
+	LED_PORT ^= _BV(LED_PIN);
+}
+
+SIGNAL(INT1_vect) {
+	encoder1++;
+}
+
+#endif
+
+
 
 /* Turns on status LED */
 void LED_ON() {
