@@ -58,7 +58,7 @@ FORMAT = ihex
 # Target file name (without extension).
 TARGET = slave
 
-SOURCES = twi.c
+SOURCES = twi.c uart.c
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c $(SOURCES)
@@ -199,15 +199,15 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 # Type: avrdude -c ?
 # to get a full listing.
 
-AVRDUDE_PROGRAMMER = -c avrisp
-#AVRDUDE_PROGRAMMER = -c avrisp2
+#AVRDUDE_PROGRAMMER = -c avrisp
+AVRDUDE_PROGRAMMER = -c avrispmkii
 #AVRDUDE_PROGRAMMER = -c dasa
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
-AVRDUDE_PORT = -P /dev/tty.usbserial-*
-#AVRDUDE_PORT = -P usb:000200017169;
+#AVRDUDE_PORT = -P /dev/tty.usbserial-*
+AVRDUDE_PORT = -P usb:000200017169
 
-AVRDUDE_BAUD = -b 19200
+#AVRDUDE_BAUD = -b 19200
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
@@ -220,12 +220,13 @@ AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 
 # Uncomment the following if you do /not/ wish a verification to be
 # performed after programming the device.
-#AVRDUDE_NO_VERIFY = -V
+AVRDUDE_NO_VERIFY = -V
 
 # Increase verbosity level.  Please use this when submitting bug
 # reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude> 
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
+AVRDUDE_VERBOSE = -q -q
 
 AVRDUDE_FLAGS = -p $(MCU) $(AVRDUDE_PORT) $(AVRDUDE_PROGRAMMER) $(AVRDUDE_BAUD)
 AVRDUDE_FLAGS += $(AVRDUDE_NO_VERIFY)
