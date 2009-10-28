@@ -1,9 +1,20 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-
+#include <stdlib.h>
 #include "slave.h"
 #include "twi.h"
+
+#if(SERIAL_ENABLED)
+#include "uart.h"
+#endif
+
+#if defined(SQUARE_TRACK)
+#include "squaretrack.h"
+#elif defined(ZIGZAG_TRACK)
+#include "zigzagtrack.h"
+#endif
+
 
 /* Setup registers, initialize sensors, etc. */
 void init(void) {
@@ -26,9 +37,10 @@ void init(void) {
 	TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
 	TCCR2B = _BV(CS22) | _BV(CS21) | _BV(CS20); // timer will overflow every 16.32 ms (~61 Hz)
 	
-
+	MOTORL_DDR |= _BV(MOTORL1_PIN) | _BV(MOTORL2_PIN);
+	MOTORR_DDR |= _BV(MOTORR1_PIN) | _BV(MOTORR2_PIN);
 	
-#ifdef USE_TWI
+#if(TWI_ENABLED)
 
 	// Setup TWI
 	twi_init();
@@ -45,61 +57,109 @@ void init(void) {
 
 #endif
 	
-	// Setup outputs
-	DDRB |= 0xFF;
-	DDRD |= 0xFF;
+#if(SERIAL_ENABLED)
+
+	uart_init(UART_BAUD_SELECT(9600, F_CPU));
+	
+	UCSR0B &= ~_BV(RXCIE0);
+	
+	DDRD &= ~_BV(0);
+	DDRD |= _BV(1);
+	
+	sei();
+
+#endif
 	
 	// Setup and start following path
-	path = malloc(5 * sizeof(struct checkpoint *));
-	path[0] = malloc(sizeof(struct checkpoint));
-	goal = path[0];
-	goal->turn_angle = 50;
-	goal->distance = 200;
-	goal->radius = 50;
-	goal->flags = 0;
-	
+	goal = track;
 }
 
 int main(void) {
-	
-	DDRB |= _BV(5);
-	PORTB |= _BV(5);
-	_delay_ms(200);
-	PORTB &= ~_BV(5);
-
 	init();
+		
+	_delay_ms(STARTUP_DELAY);
 	
-	/* Testing DC motors */
-
-	MOTORL_FORWARD(255);
-	MOTORR_BRAKE(255);
-	_delay_ms(1000);
+	DEBUG_STRING("\n\n\nStarting...");
 	
-	MOTORL_BRAKE(255);
-	MOTORR_FORWARD(255);
-	_delay_ms(1000);
+	LED_ON();
 	
-	MOTORL_FORWARD(128);
-	MOTORR_BRAKE(255);
-	_delay_ms(1000);
+	while(goal->distance != 0) {
+		
+		// Turn to face the next checkpoint
+		LED_ON();
+		DEBUG_STRING("\nGoing to next checkpoint:");
+		DEBUG_NUMBER("distance", goal->distance);
+		DEBUG_NUMBER("angle", goal->angle);
+		
+		if(goal->angle > 0) {
+			turnRightTo(goal->angle);
+		} 
+		else if(goal->angle < 0) {
+			turnLeftTo(goal->angle);
+		}
+		
+		LED_OFF();
+		
+		driveUntil(goal->distance, 128);
+		
+		brake();
+		
+		goal++;
+	}
 	
-	MOTORR_FORWARD(128);
-	MOTORL_BRAKE(255);
-	_delay_ms(1000);
-	
-	MOTORL_FORWARD(128);
-	MOTORR_FORWARD(128);
-	_delay_ms(1000);
-	
-	DDRB |= _BV(5);
-	PORTB |= _BV(5);
-	
+	DEBUG_STRING("done track!");
+	// Finished, do nothing
 	while(1) {}
-
-
+	
 	return 0;
 }
 
+
+
+void turnRightTo(int16_t degree) {
+	DEBUG_STRING("turning right");
+	
+	MOTORL_FORWARD(128);
+	MOTORR_BRAKE(128);
+	
+	while(degree-- > 0) {
+		_delay_ms(MS_PER_DEGREE);
+	}
+}
+
+void turnLeftTo(int16_t degree) {
+	DEBUG_STRING("turning left");
+	MOTORR_FORWARD(128);
+	MOTORL_BRAKE(128);
+	
+	while(degree++ < 0) {
+		_delay_ms(MS_PER_DEGREE);
+	}
+}
+
+void driveUntil(uint16_t distance, uint8_t speed) {
+	DEBUG_NUMBER("Driving at speed", speed);
+	
+	MOTORR_FORWARD(255);
+	MOTORL_FORWARD(255);
+	
+	// TODO: adjust delay based on speed
+	while(distance--) {
+		_delay_ms(MS_PER_METRE);
+	}
+}
+
+void brake() {
+	DEBUG_STRING("Braking");
+	MOTORR_BRAKE(255);
+	MOTORL_BRAKE(255);
+	_delay_ms(BRAKE_TIME);
+}
+
+
+#if(TWI_ENABLED)
+
+/* TWI / Command stuff */
 void command(uint8_t command, uint8_t data) {
 	switch(command) {
 		case SET_LEFT_SPEED:
@@ -135,18 +195,36 @@ void twi_tx(void) {
 	i = 0;
 }
 
-/* Flashes LED_PORT(LED_PIN) for ms milliseconds */
-void flash_LED(uint8_t ms) {
-	DDRB |= _BV(5);
-	PORTB |= _BV(5);
-	_delay_ms(1);
-	PORTB &= ~_BV(5);
-	
+#endif
+
+/* Turns on status LED */
+void LED_ON() {
+	LED_DDR |= _BV(LED_PIN);
+	LED_PORT |= _BV(LED_PIN);
 }
 
+// Turns off status LED
+void LED_OFF() {
+	LED_PORT &= ~_BV(LED_PIN);
+}
 
+void DEBUG_STRING(const char *str) {
+#if(SERIAL_ENABLED)
+	uart_puts(str);
+	uart_puts("\n\r");
+#endif
+}
 
-
+void DEBUG_NUMBER(const char *name, uint16_t num) {
+#if(SERIAL_ENABLED)
+	char snum[8];
+	itoa(num, snum, 10);
+	uart_puts(name);
+	uart_putc('=');
+	uart_puts(snum);
+	uart_puts("\n\r");
+#endif
+}
 
 
 
