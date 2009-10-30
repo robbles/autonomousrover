@@ -15,6 +15,8 @@
 
 #define EXTERNAL_INTERRUPTS 1
 
+#define TWI_ENABLED 1
+
 /* Status LED */
 #define LED_PORT PORTB
 #define LED_DDR DDRB
@@ -44,8 +46,8 @@
 #define MOTORR_REVERSE(x) {MOTORR1 = 0; MOTORR2 = x;}
 #define MOTORR_BRAKE(x) {MOTORR1 = x; MOTORR2 = x;}
 
-#define MS_PER_DEGREE 11
-#define MS_PER_METRE 20
+#define TICKS_PER_DEGREE 10
+#define TICKS_PER_METRE 300
 #define BRAKE_TIME 1000
 
 /* Servo motor(s) */
@@ -54,8 +56,6 @@
 #define SERVO_POSITION(x) (x + SERVO_MIN)
 
 /* TWI Definitions */
-#define TWI_ENABLED 0
-
 #define TWI_SLAVE 0x5A
 #define TWI_BAD_LENGTH 1
 #define TWI_ADDR_NACK 2
@@ -68,11 +68,9 @@
 /* TWI Commands */
 #define SET_LEFT_SPEED 1
 #define SET_RIGHT_SPEED 2 
-#define BRAKE_LEFT 3
-#define BRAKE_RIGHT 4
-#define REVERSE_LEFT 5
-#define REVERSE_RIGHT 6
-#define GET_PATH_OFFSET 7
+#define BRAKE 3
+#define REVERSE_LEFT 4
+#define REVERSE_RIGHT 5
 
 /* Data types */
 struct checkpoint {
@@ -83,22 +81,22 @@ struct checkpoint {
 } __attribute__((__packed__));
 
 /* Global variables */
-// TWI buffer
-volatile uint8_t rxBuffer[24];
-volatile uint8_t i = 0;
+
+// Output value to send back to master
+volatile uint16_t txValue;
 
 // Current checkpoint
 struct checkpoint *goal;
 
 // Encoder counts
-uint32_t encoder0, encoder1;
+uint32_t encoderLeft, encoderRight;
 
 /* Function prototypes */
 void init(void);
 
 void turnRightTo(int16_t degree);
 void turnLeftTo(int16_t degree);
-void driveUntil(uint16_t distance, uint8_t speed);
+void driveUntil(uint16_t distance);
 void brake(void);
 
 void twi_rx(uint8_t* buffer, int count);
