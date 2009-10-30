@@ -40,7 +40,7 @@
 
 
 # MCU name
-MCU = atmega168
+MCU = atmega644
 
 
 # Processor frequency.
@@ -48,7 +48,7 @@ MCU = atmega168
 #     processor frequency. You can then use this symbol in your source code to 
 #     calculate timings. Do NOT tack on a 'UL' at the end, this will be done
 #     automatically to create a 32-bit value in your source code.
-F_CPU = 16000000
+F_CPU = 20000000
 
 
 # Output format. (can be srec, ihex, binary)
@@ -56,9 +56,9 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = slave
+TARGET = master
 
-SOURCES = twi.c uart.c
+SOURCES = ../twi/twi.c ../uart/uart.c
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c $(SOURCES)
@@ -91,7 +91,7 @@ DEBUG = dwarf-2
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = 
+EXTRAINCDIRS = ../uart ../twi ../tracks
 
 
 # Compiler flag to set the C Standard level.
@@ -324,20 +324,6 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 # Default target.
 #all: begin gccversion sizebefore build sizeafter end
 all: build sizeafter
-
-
-master: TARGET = master
-master: SOURCES = twi.c
-master: F_CPU = 16000000
-master:
-	$(MAKE) TARGET=$(TARGET) F_CPU=$(F_CPU) SOURCES=$(SOURCES)
-	
-slave: TARGET = slave
-master: SOURCES = twi.c
-slave: F_CPU = 16000000
-slave:
-	$(MAKE) TARGET=$(TARGET) F_CPU=$(F_CPU) SOURCES=$(SOURCES)
-
 
 
 
