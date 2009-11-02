@@ -1,8 +1,8 @@
 #ifndef _testing_
 #define _testing_
 
-//#define SQUARE_TRACK
-#define ZIGZAG_TRACK
+#define SQUARE_TRACK
+//#define ZIGZAG_TRACK
 
 /* Clock speed of the AVR CPU */
 #ifndef F_CPU
@@ -12,8 +12,6 @@
 #define STARTUP_DELAY 2000
 
 #define SERIAL_ENABLED 1
-
-#define EXTERNAL_INTERRUPTS 1
 
 #define TWI_ENABLED 1
 
@@ -46,7 +44,9 @@
 #define MOTORR_REVERSE(x) {MOTORR1 = 0; MOTORR2 = x;}
 #define MOTORR_BRAKE(x) {MOTORR1 = x; MOTORR2 = x;}
 
-#define TICKS_PER_DEGREE 10
+#define MOTOR_SPEED 255
+
+#define TICKS_PER_DEGREE 1
 #define TICKS_PER_METRE 300
 #define BRAKE_TIME 1000
 
@@ -104,6 +104,7 @@ void twi_tx(void);
 
 void LED_ON(void);
 void LED_OFF(void);
+#define LED_FLASH(x) {LED_ON(); _delay_ms(x); LED_OFF(); _delay_ms(200);}
 
 void DEBUG_STRING(const char *str);
 void DEBUG_NUMBER(const char *name, uint16_t num);

@@ -18,6 +18,7 @@
 
 /* Setup registers, initialize sensors, etc. */
 void init(void) {
+		
 	//Disable timer interrupts before setting up timers
 	TIMSK0 = 0x00;
 	TIMSK1 = 0x00;
@@ -41,13 +42,14 @@ void init(void) {
 	MOTORL_DDR |= _BV(MOTORL1_PIN) | _BV(MOTORL2_PIN);
 	MOTORR_DDR |= _BV(MOTORR1_PIN) | _BV(MOTORR2_PIN);
 	
-#if(EXTERNAL_INTERRUPTS)
 	// Enable rising-edge external interrupts on INT0(pin 4) and INT1(pin 5)
 	// Warning, INT1 conflicts with OC2B (servo PWM output)
 	EICRA = _BV(ISC11) | _BV(ISC10) | _BV(ISC01) | _BV(ISC00);
 	EIMSK = _BV(INT1) | _BV(INT0);
 	
-#endif
+	encoderLeft = 1;
+	encoderRight = 1;
+	
 		
 #if(TWI_ENABLED)
 
@@ -61,23 +63,18 @@ void init(void) {
 	// Set slave address
 	twi_setAddress(TWI_SLAVE);
 	
-	// Turn on interrupts
-	sei();
-
 #endif
 	
-#if(SERIAL_ENABLED)
+//#if(SERIAL_ENABLED)
 
 	uart_init(UART_BAUD_SELECT(9600, F_CPU));
 	
-	UCSR0B &= ~_BV(RXCIE0);
+	//UCSR0B &= ~_BV(RXCIE0);
 	
 	DDRD &= ~_BV(0);
 	DDRD |= _BV(1);
 	
-	sei();
-
-#endif
+//#endif
 	
 	// Setup and start following path
 	goal = track;
@@ -97,16 +94,19 @@ void init(void) {
 	DEBUG_NUMBER("ext. interrupts counted in 10s ", test);
 #endif
 
+	sei();
+
 }
 
 int main(void) {
 	init();
 		
+	DDRD &= ~_BV(2);
+	DDRD &= ~_BV(3);
+		
 	_delay_ms(STARTUP_DELAY);
 	
 	DEBUG_STRING("\n\n\nStarting...");
-	
-	LED_ON();
 	
 	while(goal->distance != 0) {
 		
@@ -114,18 +114,18 @@ int main(void) {
 		DEBUG_STRING("\nGoing to next checkpoint:");
 		DEBUG_NUMBER("distance", goal->distance);
 		DEBUG_NUMBER("angle", goal->angle);
-		
+			
 		if(goal->angle > 0) {
 			turnRightTo(goal->angle);
 		} 
 		else if(goal->angle < 0) {
 			turnLeftTo(goal->angle);
 		}
-				
+						
 		driveUntil(goal->distance);
 		
-		DEBUG_NUMBER("encoderLeft", encoderLeft);
-		DEBUG_NUMBER("encoderRight", encoderRight);
+		//DEBUG_NUMBER("encoderLeft", encoderLeft);
+		//DEBUG_NUMBER("encoderRight", encoderRight);
 		
 		brake();
 		
@@ -145,26 +145,28 @@ void turnRightTo(int16_t degree) {
 	DEBUG_STRING("turning right");
 	uint32_t start = encoderLeft + encoderRight;
 	uint32_t end = start + (2 * degree * TICKS_PER_DEGREE);
-	MOTORL_FORWARD(128);
-	MOTORR_REVERSE(128);
+	MOTORL_FORWARD(MOTOR_SPEED);
+	MOTORR_REVERSE(MOTOR_SPEED);
 	
-	while((encoderLeft + encoderRight) < end) { }
+	while((encoderLeft + encoderRight) < end) {
+ 	}
 	
 	// Reset encoders to start value since the rover hasn't moved
-	encoderLeft = encoderRight = (start / 2);
+	//encoderLeft = encoderRight = (start / 2);
 }
 
 void turnLeftTo(int16_t degree) {
 	DEBUG_STRING("turning left");
 	uint32_t start = encoderLeft + encoderRight;
 	uint32_t end = start + (2 * degree * TICKS_PER_DEGREE);
-	MOTORL_REVERSE(128);
-	MOTORR_FORWARD(128);
+	MOTORL_REVERSE(MOTOR_SPEED);
+	MOTORR_FORWARD(MOTOR_SPEED);
 	
-	while((encoderLeft + encoderRight) < end) { }
+	while((encoderLeft + encoderRight) < end) {
+ 	}
 	
 	// Reset encoders to start value since the rover hasn't moved
-	encoderLeft = encoderRight = (start / 2);
+	//encoderLeft = encoderRight = (start / 2);
 }
 
 void driveUntil(uint16_t distance) {
@@ -172,11 +174,12 @@ void driveUntil(uint16_t distance) {
 	
 	uint32_t start = encoderLeft + encoderRight;
 	uint32_t end = start + (2 * distance);
-	MOTORL_FORWARD(128);
-	MOTORR_FORWARD(128);
+	MOTORL_FORWARD(MOTOR_SPEED);
+	MOTORR_FORWARD(MOTOR_SPEED);
 	
 	while((encoderLeft + encoderRight) < end) {
-	// Adjust motors so the rover keeps going straight
+		// Adjust motors so the rover keeps going straight
+		/*
 		if(encoderLeft > encoderRight) {
 			MOTORL_FORWARD(120);
 			MOTORR_FORWARD(130);
@@ -187,37 +190,50 @@ void driveUntil(uint16_t distance) {
 			MOTORL_FORWARD(128);
 			MOTORR_FORWARD(128);
 		}
+		*/
+		//DEBUG_NUMBER("encoderLeft", encoderLeft);
+		//DEBUG_NUMBER("encoderRight", encoderRight);
+		_delay_ms(500);
  	}
 	
 }
 
 void brake() {
 	DEBUG_STRING("Braking");
-	MOTORR_BRAKE(255);
-	MOTORL_BRAKE(255);
+	MOTORR_BRAKE(MOTOR_SPEED);
+	MOTORL_BRAKE(MOTOR_SPEED);
 	_delay_ms(BRAKE_TIME);
 }
 
 
 #if(TWI_ENABLED)
 
-/* TWI / Command stuff */
+/* TWI Commands */
 void command(uint8_t command, uint8_t data) {
+	int i;
+	for(i=0; i<command; i++) {
+		LED_ON();
+		_delay_ms(50);
+		LED_OFF();
+		_delay_ms(50);
+	}
+	_delay_ms(500);
+	for(i=0; i<data; i++) {
+		LED_ON();
+		_delay_ms(50);
+		LED_OFF();
+		_delay_ms(50);
+	}
 	switch(command) {
 		case SET_LEFT_SPEED:
-		DEBUG_NUMBER("left speed", data);
 		break;
 		case SET_RIGHT_SPEED:
-		DEBUG_NUMBER("right speed", data);
 		break;
 		case BRAKE:
-		DEBUG_NUMBER("brake speed", data);
 		break;
 		case REVERSE_LEFT:
-		DEBUG_NUMBER("left speed", -((int16_t)data));
 		break;
 		case REVERSE_RIGHT:
-		DEBUG_NUMBER("right speed", -((int16_t)data));
 		break;
 	}
 
@@ -225,35 +241,32 @@ void command(uint8_t command, uint8_t data) {
 
 
 void twi_rx(uint8_t* buffer, int count) {
-	DEBUG_NUMBER("twi: received ", count);
-	
+	LED_ON();
 	if(count == 2) {
 		command(buffer[0], buffer[1]);
 	} else {
-		DEBUG_STRING("Wrong # of bytes for command msg!");
+		LED_OFF();
 	}
 }
 
 void twi_tx(void) {
 	// Send data value back as little-endian value
 	twi_transmit((char *)txValue, 2);
-	DEBUG_NUMBER("twi: sending value", txValue);
 }
 
 #endif
 
 
-#if(EXTERNAL_INTERRUPTS)
 
 SIGNAL(INT0_vect) {
 	encoderLeft++;
+	LED_PORT ^= _BV(LED_PIN);
 }
 
 SIGNAL(INT1_vect) {
 	encoderRight++;
+	LED_PORT ^= _BV(LED_PIN);
 }
-
-#endif
 
 
 
@@ -267,6 +280,7 @@ void LED_ON() {
 void LED_OFF() {
 	LED_PORT &= ~_BV(LED_PIN);
 }
+
 
 void DEBUG_STRING(const char *str) {
 #if(SERIAL_ENABLED)

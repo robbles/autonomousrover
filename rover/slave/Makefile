@@ -58,7 +58,7 @@ FORMAT = ihex
 # Target file name (without extension).
 TARGET = slave
 
-SOURCES = ../twi/twi.c ../uart/uart.c
+SOURCES = twi.c uart.c
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c $(SOURCES)
@@ -91,7 +91,7 @@ DEBUG = dwarf-2
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = ../twi ../uart ../tracks
+EXTRAINCDIRS = ../tracks
 
 
 # Compiler flag to set the C Standard level.
