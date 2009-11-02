@@ -58,7 +58,7 @@ FORMAT = ihex
 # Target file name (without extension).
 TARGET = master
 
-SOURCES = ../twi/twi.c ../uart/uart.c
+SOURCES = twi.c uart.c
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c $(SOURCES)

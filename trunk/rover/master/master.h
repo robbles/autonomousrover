@@ -28,11 +28,9 @@
 /* TWI Commands */
 #define SET_LEFT_SPEED 1
 #define SET_RIGHT_SPEED 2 
-#define BRAKE_LEFT 3
-#define BRAKE_RIGHT 4
-#define REVERSE_LEFT 5
-#define REVERSE_RIGHT 6
-#define GET_PATH_OFFSET 7
+#define BRAKE 3
+#define REVERSE_LEFT 4
+#define REVERSE_RIGHT 5
 
 /* Data types */
 struct checkpoint {
@@ -51,10 +49,18 @@ struct checkpoint *goal;
 uint32_t encoder0, encoder1;
 
 // ADC result
-uint16_t adc;
-uint8_t adc_flag;
-#define NO_CONVERSION 0;
-#define COMPASS_CONVERSION 1;
+uint16_t adc_reading;
+#define MUX_RANGER1 0x00
+#define MUX_RANGER2 0x01
+#define MUX_COMPASS1 0x02
+#define MUX_COMPASS2 0x03
+#define MUX_INFRARED1 0x04
+#define MUX_INFRARED2 0x05
+#define MUX_INFRARED3 0x06
+#define MUX_ADC7 0x07
+
+uint16_t ranger1, ranger2;
+uint16_t compass1, compass2;
 
 // Compass reading / resetting
 #define COMPASS_SET {}
@@ -66,7 +72,7 @@ void init(void);
 void twi_rx(uint8_t* buffer, int count);
 void twi_tx(void);
 
-void reset_compass(void);
+uint16_t reset_compass(void);
 
 void LED_ON(void);
 void LED_OFF(void);
