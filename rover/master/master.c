@@ -24,6 +24,19 @@ void init(void) {
 	TIMSK1 = 0x00;
 	TIMSK2 = 0x00;
 	
+	// Setup 8-bit timer0 and timer2
+	TCCR0A = _BV(WGM01);
+	TCCR0B = _BV(CS02) | _BV(CS01) | _BV(CS00); // Clocked from T0 pin
+	OCR0A = 255; // one full rotation
+	TIMSK0 = _BV(OCIE0A);
+	
+	ASSR |= _BV(AS2); // Enable asynchronous operation first to avoid corruption
+	ASSR |= _BV(EXCLK); // External clock instead of crystal
+	TCCR2A = _BV(WGM21); // CTC mode, wraps at OCR2A
+	TCCR2B = _BV(CS20); // Timer actually clocked externally
+	OCR2A = 255; // one full rotation
+	TIMSK2 = _BV(OCIE2A);
+	
 	// Setup 16-bit timer 1
 	TCCR1A = 0x00; // No PWM output
 	TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS12) | _BV(CS10); // clk/1024, 16-bit CTC
@@ -33,12 +46,12 @@ void init(void) {
 		
 	// Setup ADC
 	ADMUX = MUX_RANGER1; // VRef = AREF, Right adjust result, src = ADC0
-	ADCSRA = _BV(ADEN) | _BV(ADIE); // Enable ADC, clk /2 speed
+	ADCSRA = _BV(ADEN) | _BV(ADIE); // Enable ADC and interrupt, clk /2 speed
 	ADCSRA |= _BV(ADATE);
 	//ADCSRB = _BV(ADTS2) | _BV(ADTS1) | _BV(ADTS0); // Auto-trigger on Timer1 capture event
 	ADCSRB = 0x00; // Free-running mode
 	DIDR0 = 0x00; // Don't disable digital input on ADC pins
-	//ADCSRA |= _BV(ADSC); // Start converting!
+	ADCSRA |= _BV(ADSC); // Start converting!
 		
 #if(TWI_ENABLED)
 
@@ -67,17 +80,23 @@ int main(void) {
 	
 	_delay_ms(STARTUP_DELAY);
 		
+	LED_ON();
+	
 	init();
 			
-	uint8_t msg1[] = {SET_LEFT_SPEED, 5};
-	uint8_t msg2[] = {BRAKE, 10};
+	DEBUG_STRING("master starting...");
 	
-	// Write some test messages
-	twi_writeTo(TWI_SLAVE, msg1, 2, 1);
-	
-	_delay_ms(1000);
-	
-	twi_writeTo(TWI_SLAVE, msg2, 2, 1);
+	while(1) {		
+		DEBUG_NUMBER("encoderLeft", encoderLeft + ENCODER_LEFT);
+		DEBUG_NUMBER("encoderRight", encoderRight + ENCODER_RIGHT);
+		_delay_ms(500);
+	}
+		
+		
+		
+		
+		
+		
 		
 	// Finished, do nothing
 	while(1) {}
@@ -91,7 +110,17 @@ int main(void) {
 /* Interrupt handler for CTC interrupt
 	Should occur every 1 second */
 SIGNAL(TIMER1_CAPT_vect) {
+	//LED_PORT ^= _BV(LED_PIN);
+}
+
+SIGNAL(TIMER0_COMPA_vect) {
 	LED_PORT ^= _BV(LED_PIN);
+	encoderLeft += OCR0A;
+}
+
+SIGNAL(TIMER2_COMPA_vect) {
+	LED_PORT ^= _BV(LED_PIN);
+	encoderRight += OCR2A;
 }
 
 /* Interrupt handler for ADC */

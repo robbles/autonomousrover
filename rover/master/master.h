@@ -46,7 +46,9 @@ struct checkpoint {
 struct checkpoint *goal;
 
 // Encoder counts
-uint32_t encoder0, encoder1;
+uint32_t encoderLeft, encoderRight;
+#define ENCODER_LEFT TCNT0
+#define ENCODER_RIGHT TCNT2
 
 // ADC result
 uint16_t adc_reading;

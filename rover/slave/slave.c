@@ -81,18 +81,6 @@ void init(void) {
 	
 	// Set encoder count to zero
 	encoderLeft = encoderRight = 0;
-	
-#if(TEST_EXT_INTERRUPTS)
-	// Testing if we miss any interrupts
-	_delay_ms(1000);
-	uint32_t test = encoderLeft;
-	DEBUG_NUMBER("ext. interrupts counted in 1s", test);
-	
-	encoderLeft = 0;
-	for(i=0; i<10; i++) { _delay_ms(1000); }
-	test = encoderLeft;
-	DEBUG_NUMBER("ext. interrupts counted in 10s ", test);
-#endif
 
 	sei();
 
@@ -107,6 +95,12 @@ int main(void) {
 	_delay_ms(STARTUP_DELAY);
 	
 	DEBUG_STRING("\n\n\nStarting...");
+	
+	while(1) {
+		DEBUG_NUMBER("encoderLeft", encoderLeft);
+		DEBUG_NUMBER("encoderRight", encoderRight);
+		_delay_ms(500);
+	}
 	
 	while(goal->distance != 0) {
 		
