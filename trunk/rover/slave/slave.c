@@ -234,50 +234,45 @@ void brake() {
 
 void twi_rx(uint8_t* buffer, int count) {
 	LED_PORT ^= _BV(LED_PIN);
-	if(count == 2) {
-		
-		// Write command info to debug buffer
-		sprintf(debug_buffer, "command %d - %d\n\r", buffer[0], buffer[1]);
-		debug_flag++;
 	
-		// Write command 
-		switch(buffer[0]) {
-			case FORWARD_LEFT:
-				MOTORL_FORWARD(buffer[1]);
-				break;
-			case FORWARD_RIGHT:
-				MOTORR_FORWARD(buffer[1]);
-				break;
-			case BRAKE:
-				MOTORL_BRAKE(buffer[1]);
-				MOTORR_BRAKE(buffer[1]);
-				break;
-			case REVERSE_LEFT:
-				MOTORL_REVERSE(buffer[1])
-				break;
-			case REVERSE_RIGHT:
-				MOTORR_REVERSE(buffer[1])
-				break;
-			case FORWARD:
-				MOTORL_FORWARD(buffer[1]);
-				MOTORR_FORWARD(buffer[1]);
-				break;
-			case TURN_LEFT:
-				MOTORL_REVERSE(buffer[1]);
-				MOTORR_FORWARD(buffer[1]);
-				break;
-			case TURN_RIGHT:
-				MOTORL_FORWARD(buffer[1]);
-				MOTORR_REVERSE(buffer[1]);
-				break;
-			case REVERSE:
-				MOTORL_REVERSE(buffer[1]);
-				MOTORR_REVERSE(buffer[1]);
-				break;
-				
-				
-		}
+	// Write command 
+	switch(buffer[0]) {
+		case FORWARD_LEFT:
+			MOTORL_FORWARD(buffer[1]);
+			break;
+		case FORWARD_RIGHT:
+			MOTORR_FORWARD(buffer[1]);
+			break;
+		case BRAKE:
+			MOTORL_BRAKE(buffer[1]);
+			MOTORR_BRAKE(buffer[1]);
+			break;
+		case REVERSE_LEFT:
+			MOTORL_REVERSE(buffer[1])
+			break;
+		case REVERSE_RIGHT:
+			MOTORR_REVERSE(buffer[1])
+			break;
+		case FORWARD:
+			MOTORL_FORWARD(buffer[1]);
+			MOTORR_FORWARD(buffer[1]);
+			break;
+		case TURN_LEFT:
+			MOTORL_REVERSE(buffer[1]);
+			MOTORR_FORWARD(buffer[1]);
+			break;
+		case TURN_RIGHT:
+			MOTORL_FORWARD(buffer[1]);
+			MOTORR_REVERSE(buffer[1]);
+			break;
+		case REVERSE:
+			MOTORL_REVERSE(buffer[1]);
+			MOTORR_REVERSE(buffer[1]);
+			break;
+			
+			
 	}
+
 }
 
 void twi_tx(void) {
