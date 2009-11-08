@@ -121,14 +121,7 @@ int main(void) {
 	}
 	
 	DEBUG_STRING("done track!");
-	// Finished, do nothing
-	while(1) {}
 	
-	return 0;	
-		
-		
-		
-		
 	// Finished, do nothing
 	while(1) {}
 	
@@ -136,10 +129,13 @@ int main(void) {
 }
 
 void command(uint8_t command, uint8_t value) {
+	uint8_t err;
 	cmd_data[0] = command;
 	cmd_data[1] = value;
-	twi_writeTo(TWI_SLAVE, cmd_data, 2, 1);
-	_delay_ms(100);
+	do {
+		// Repeat transmission until successful
+		err = twi_writeTo(TWI_SLAVE, cmd_data, 2, 1);
+	} while(err);
 }
 
 void turnRightTo(int16_t degree) {
@@ -155,7 +151,7 @@ void turnRightTo(int16_t degree) {
 	}
 	
 	// Reset encoders to start value since the rover hasn't moved
-	//encoderLeft = encoderRight = (start / 2);
+	encoderLeft = encoderRight = (start / 2);
 }
 
 void turnLeftTo(int16_t degree) {
@@ -171,9 +167,25 @@ void turnLeftTo(int16_t degree) {
 	}
 	
 	// Reset encoders to start value since the rover hasn't moved
-	//encoderLeft = encoderRight = (start / 2);
+	encoderLeft = encoderRight = (start / 2);
 }
 
+void driveUntil(uint16_t distance) {
+	uint32_t endLeft = encoderLeft + distance;
+	uint32_t endRight = encoderRight + distance;
+	
+	int32_t diff = 0;
+	
+	while((encoderLeft < endLeft) && (encoderRight < endRight)) {
+		if((encoderLeft - encoderRight) != diff) {
+			diff = encoderLeft - encoderRight;
+			command(FORWARD_LEFT, CONSTRAIN(255 - diff, 200, 255));
+			command(FORWARD_RIGHT, CONSTRAIN(255 + diff, 200, 255));
+		}
+	}
+}
+
+/*
 void driveUntil(uint16_t distance) {
 	DEBUG_NUMBER("Driving distance", distance);
 	uint8_t left_speed, right_speed;
@@ -189,27 +201,23 @@ void driveUntil(uint16_t distance) {
 		if(encoderLeft > encoderRight) {
 			right_speed = 255;
 			if(left_speed > 128) {
-				left_speed-=2;
+				left_speed-=1;
 			}
 			command(FORWARD_LEFT, left_speed);
-			_delay_us(100);
 			command(FORWARD_RIGHT, right_speed);
 		}
 		else if(encoderRight > encoderLeft) {
 			left_speed = 255;
 			if(right_speed > 128) {
-				right_speed-=2;
+				right_speed-=1;
 			}
 			command(FORWARD_RIGHT, right_speed);
-			_delay_us(100);
 			command(FORWARD_LEFT, left_speed);
 		}
-		else {
-			_delay_us(100);
-		}
-	}
-	
+		_delay_ms(10);
+	}	
 }
+*/
 
 void brake() {
 	DEBUG_STRING("Braking");

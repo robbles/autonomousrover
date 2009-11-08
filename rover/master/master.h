@@ -24,10 +24,12 @@
 
 /* Motor timing */
 #define MOTOR_SPEED 255
-#define DEGREES_PER_TICK 10
+#define DEGREES_PER_TICK 5
 #define TICKS_PER_METRE 300
 #define BRAKE_TIME 500
-
+#define MIN(x, y) ((x < y)? x : y)
+#define MAX(x, y) ((x < y)? y : x)
+#define CONSTRAIN(x, low, high) (MIN(high, MAX(low, x)))
 
 /* TWI Definitions */
 #define TWI_SLAVE 0x5A
