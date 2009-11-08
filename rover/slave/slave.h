@@ -21,10 +21,10 @@
 #define LED_PIN 0
 
 /* DC motors */
-#define MOTORL1 OCR0A
-#define MOTORL2 OCR0B
-#define MOTORR1 OCR1A
-#define MOTORR2 OCR1B
+#define MOTORL1 OCR1A
+#define MOTORL2 OCR1B
+#define MOTORR1 OCR0A
+#define MOTORR2 OCR0B
 
 #define MOTORL_PORT PORTD
 #define MOTORL_DDR DDRD
@@ -66,11 +66,16 @@
 #define TWI_NOWAIT 0
 
 /* TWI Commands */
-#define SET_LEFT_SPEED 1
-#define SET_RIGHT_SPEED 2 
+#define FORWARD_LEFT 1
+#define FORWARD_RIGHT 2 
 #define BRAKE 3
 #define REVERSE_LEFT 4
 #define REVERSE_RIGHT 5
+
+#define FORWARD 6
+#define TURN_RIGHT 7
+#define TURN_LEFT 8
+#define REVERSE 9
 
 /* Data types */
 struct checkpoint {
@@ -90,6 +95,11 @@ struct checkpoint *goal;
 
 // Encoder counts
 uint32_t encoderLeft, encoderRight;
+
+/* Interrupt debug messages */
+int debug_flag = 0;
+int debug_pos = 0;
+uint8_t debug_buffer[128];
 
 /* Function prototypes */
 void init(void);
