@@ -1,19 +1,33 @@
 #ifndef _testing_
 #define _testing_
 
-//#define SQUARE_TRACK
-#define ZIGZAG_TRACK
+#define SQUARE_TRACK
+//#define ZIGZAG_TRACK
+//#define STRAIGHT_TRACK
 
-#define STARTUP_DELAY 1000
+#define STARTUP_DELAY 4000
 
 #define SERIAL_ENABLED 1
 
 #define TWI_ENABLED 1
 
 /* Status LED */
-#define LED_PORT PORTB
-#define LED_DDR DDRB
-#define LED_PIN 2
+#define LED_LEFT 0
+#define LEDL_PORT PORTC
+#define LEDL_DDR DDRC
+#define LEDL_PIN 7
+#define LED_RIGHT 1
+#define LEDR_PORT PORTB
+#define LEDR_DDR DDRB
+#define LEDR_PIN 2
+
+
+/* Motor timing */
+#define MOTOR_SPEED 255
+#define DEGREES_PER_TICK 10
+#define TICKS_PER_METRE 300
+#define BRAKE_TIME 500
+
 
 /* TWI Definitions */
 #define TWI_SLAVE 0x5A
@@ -26,11 +40,17 @@
 #define TWI_NOWAIT 0
 
 /* TWI Commands */
-#define SET_LEFT_SPEED 1
-#define SET_RIGHT_SPEED 2 
+#define FORWARD_LEFT 1
+#define FORWARD_RIGHT 2 
 #define BRAKE 3
 #define REVERSE_LEFT 4
 #define REVERSE_RIGHT 5
+
+#define FORWARD 6
+#define TURN_RIGHT 7
+#define TURN_LEFT 8
+#define REVERSE 9
+unsigned char cmd_data[2];
 
 /* Data types */
 struct checkpoint {
@@ -46,12 +66,16 @@ struct checkpoint {
 struct checkpoint *goal;
 
 // Encoder counts
-uint32_t encoderLeft, encoderRight;
-#define ENCODER_LEFT TCNT0
-#define ENCODER_RIGHT TCNT2
+volatile uint32_t encoderLeft, encoderRight;
+
+// Servo
+#define SERVO_TURN 30
+#define SERVO_START 2500
+#define SERVO_END 5000
+uint16_t servo_counter = 0;
 
 // ADC result
-uint16_t adc_reading;
+volatile uint16_t adc_reading;
 #define MUX_RANGER1 0x00
 #define MUX_RANGER2 0x01
 #define MUX_COMPASS1 0x02
@@ -61,8 +85,8 @@ uint16_t adc_reading;
 #define MUX_INFRARED3 0x06
 #define MUX_ADC7 0x07
 
-uint16_t ranger1, ranger2;
-uint16_t compass1, compass2;
+volatile uint16_t ranger1, ranger2;
+volatile uint16_t compass1, compass2;
 
 // Compass reading / resetting
 #define COMPASS_SET {}
@@ -76,8 +100,15 @@ void twi_tx(void);
 
 uint16_t reset_compass(void);
 
-void LED_ON(void);
-void LED_OFF(void);
+void command(uint8_t command, uint8_t value);
+void turnRightTo(int16_t degree);
+void turnLeftTo(int16_t degree);
+void driveUntil(uint16_t distance);
+void brake(void);
+
+void LED_ON(uint8_t led);
+void LED_OFF(uint8_t led);
+void LED_TOGGLE(uint8_t led);
 
 void DEBUG_STRING(const char *str);
 void DEBUG_NUMBER(const char *name, uint16_t num);

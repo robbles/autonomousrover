@@ -2,6 +2,7 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "slave.h"
 #include "twi.h"
 
@@ -35,20 +36,19 @@ void init(void) {
 	MOTORR1 = MOTORR2 = 0;
 
 	// Set 8-bit timer 2 and PWM output OC2B(PD3) at clock speed / 1024
-	//TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
-	//TCCR2B = _BV(CS22) | _BV(CS21) | _BV(CS20); // timer will overflow every 16.32 ms (~61 Hz)
-	// Values for OC2B should range from 23 - 30 for full rotation
+	TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20); // Fast PWM, top at OCR2A
+	TCCR2B = _BV(WGM22) | _BV(CS21); // clock speed / 8
+	OCR2A = 250; // 10 KHz wave
+	OCR2B = 127; // 50% duty cycle
+	DDRD |= _BV(3); // Enable output
 	
 	MOTORL_DDR |= _BV(MOTORL1_PIN) | _BV(MOTORL2_PIN);
 	MOTORR_DDR |= _BV(MOTORR1_PIN) | _BV(MOTORR2_PIN);
 	
 	// Enable rising-edge external interrupts on INT0(pin 4) and INT1(pin 5)
 	// Warning, INT1 conflicts with OC2B (servo PWM output)
-	EICRA = _BV(ISC11) | _BV(ISC10) | _BV(ISC01) | _BV(ISC00);
-	EIMSK = _BV(INT1) | _BV(INT0);
-	
-	encoderLeft = 1;
-	encoderRight = 1;
+	//EICRA = _BV(ISC11) | _BV(ISC10) | _BV(ISC01) | _BV(ISC00);
+	//EIMSK = _BV(INT1) | _BV(INT0);
 	
 		
 #if(TWI_ENABLED)
@@ -65,17 +65,14 @@ void init(void) {
 	
 #endif
 	
-//#if(SERIAL_ENABLED)
-
 	uart_init(UART_BAUD_SELECT(9600, F_CPU));
-	
-	//UCSR0B &= ~_BV(RXCIE0);
-	
+		
 	DDRD &= ~_BV(0);
 	DDRD |= _BV(1);
 	
-//#endif
-	
+	// Enable LED output
+	LED_DDR |= _BV(LED_PIN);
+		
 	// Setup and start following path
 	goal = track;
 	
@@ -89,19 +86,48 @@ void init(void) {
 int main(void) {
 	init();
 		
-	DDRD &= ~_BV(2);
-	DDRD &= ~_BV(3);
-		
 	_delay_ms(STARTUP_DELAY);
 	
 	DEBUG_STRING("\n\n\nStarting...");
+	/*
+	while(1) {
+		
+		LED_ON();
+		_delay_ms(500);
+		LED_OFF();
+		
+		MOTORL_FORWARD(128);
+		MOTORR_BRAKE(128);
+		_delay_ms(1000);
+		
+		MOTORR_FORWARD(128);
+		MOTORL_BRAKE(128);
+		_delay_ms(1000);
+		
+		MOTORL_FORWARD(128);
+		MOTORR_FORWARD(128);
+		_delay_ms(1000);
+		
+		MOTORL_BRAKE(128);
+		MOTORR_BRAKE(128);
+		_delay_ms(1000);
+		
+		MOTORL_REVERSE(128);
+		MOTORR_REVERSE(128);
+		_delay_ms(1000);
+	}
+	*/
 	
 	while(1) {
-		DEBUG_NUMBER("encoderLeft", encoderLeft);
-		DEBUG_NUMBER("encoderRight", encoderRight);
-		_delay_ms(500);
+		if(debug_flag) {
+			debug_flag=0;
+			uart_puts(debug_buffer);
+		}
 	}
 	
+	
+	/*
+
 	while(goal->distance != 0) {
 		
 		// Turn to face the next checkpoint
@@ -125,6 +151,8 @@ int main(void) {
 		
 		goal++;
 	}
+	
+	*/
 	
 	DEBUG_STRING("done track!");
 	// Finished, do nothing
@@ -202,44 +230,53 @@ void brake() {
 
 #if(TWI_ENABLED)
 
-/* TWI Commands */
-void command(uint8_t command, uint8_t data) {
-	int i;
-	for(i=0; i<command; i++) {
-		LED_ON();
-		_delay_ms(50);
-		LED_OFF();
-		_delay_ms(50);
-	}
-	_delay_ms(500);
-	for(i=0; i<data; i++) {
-		LED_ON();
-		_delay_ms(50);
-		LED_OFF();
-		_delay_ms(50);
-	}
-	switch(command) {
-		case SET_LEFT_SPEED:
-		break;
-		case SET_RIGHT_SPEED:
-		break;
-		case BRAKE:
-		break;
-		case REVERSE_LEFT:
-		break;
-		case REVERSE_RIGHT:
-		break;
-	}
-
-}
-
+/* TWI Callbacks */
 
 void twi_rx(uint8_t* buffer, int count) {
-	LED_ON();
+	LED_PORT ^= _BV(LED_PIN);
 	if(count == 2) {
-		command(buffer[0], buffer[1]);
-	} else {
-		LED_OFF();
+		
+		// Write command info to debug buffer
+		sprintf(debug_buffer, "command %d - %d\n\r", buffer[0], buffer[1]);
+		debug_flag++;
+	
+		// Write command 
+		switch(buffer[0]) {
+			case FORWARD_LEFT:
+				MOTORL_FORWARD(buffer[1]);
+				break;
+			case FORWARD_RIGHT:
+				MOTORR_FORWARD(buffer[1]);
+				break;
+			case BRAKE:
+				MOTORL_BRAKE(buffer[1]);
+				MOTORR_BRAKE(buffer[1]);
+				break;
+			case REVERSE_LEFT:
+				MOTORL_REVERSE(buffer[1])
+				break;
+			case REVERSE_RIGHT:
+				MOTORR_REVERSE(buffer[1])
+				break;
+			case FORWARD:
+				MOTORL_FORWARD(buffer[1]);
+				MOTORR_FORWARD(buffer[1]);
+				break;
+			case TURN_LEFT:
+				MOTORL_REVERSE(buffer[1]);
+				MOTORR_FORWARD(buffer[1]);
+				break;
+			case TURN_RIGHT:
+				MOTORL_FORWARD(buffer[1]);
+				MOTORR_REVERSE(buffer[1]);
+				break;
+			case REVERSE:
+				MOTORL_REVERSE(buffer[1]);
+				MOTORR_REVERSE(buffer[1]);
+				break;
+				
+				
+		}
 	}
 }
 
