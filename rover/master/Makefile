@@ -91,7 +91,7 @@ DEBUG = dwarf-2
 #     Each directory must be seperated by a space.
 #     Use forward slashes for directory separators.
 #     For a directory that has spaces, enclose it in quotes.
-EXTRAINCDIRS = ../uart ../twi ../tracks
+EXTRAINCDIRS = ../uart ../twi
 
 
 # Compiler flag to set the C Standard level.
@@ -211,6 +211,7 @@ AVRDUDE_PORT = -P usb:000200017169
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 #AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_READ_EEPROM = -U eeprom:r:$(TARGET)_eeprom.txt:r
 
 
 # Uncomment the following if you want avrdude's erase cycle counter.
@@ -487,6 +488,12 @@ extcoff: $(TARGET).elf
 
 # Target: clean project.
 clean: begin clean_list end
+
+eeprom: 
+	@$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_READ_EEPROM)
+	@cat $(TARGET)_eeprom.txt
+	@echo
+	@echo
 
 clean_list :
 	@echo

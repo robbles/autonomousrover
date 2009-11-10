@@ -6,29 +6,29 @@
 struct checkpoint track[] = {
 	/* First straight stretch */
 	{
-		.distance = 300,
+		.distance = 500,
 		.angle = 0,
 		.radius = 20,
 		.sensor_flags = 0x00
 	},
 	/* Turn 90deg and go straight for 100m */
 	{
-		.distance = 300,
-		.angle = 90,
+		.distance = 500,
+		.angle = 30,
 		.radius = 20,
 		.sensor_flags = 0x00
 	},
 	/* Turn 90deg and go straight for 100m */
 	{
-		.distance = 300,
-		.angle = 90,
+		.distance = 500,
+		.angle = 30,
 		.radius = 20,
 		.sensor_flags = 0x00
 	},
 	/* Turn 90deg and go straight for 100m */
 	{
-		.distance = 300,
-		.angle = 90,
+		.distance = 500,
+		.angle = 30,
 		.radius = 20,
 		.sensor_flags = 0x00
 	},

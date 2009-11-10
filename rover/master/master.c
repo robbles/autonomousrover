@@ -1,6 +1,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <avr/eeprom.h>
+#include <string.h>
 #include "master.h"
 #include "twi.h"
 
@@ -15,6 +17,8 @@
 #include "zigzagtrack.h"
 #elif defined(STRAIGHT_TRACK)
 #include "straighttrack.h"
+#elif defined(SPIN_TRACK)
+#include "spintrack.h"
 #endif
 
 
@@ -27,19 +31,17 @@ void init(void) {
 	TIMSK2 = 0x00;
 	
 	// Setup 8-bit timer 2
-	TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20); // Fast PWM, top at OCR2A
-	TCCR2B = _BV(WGM22) | _BV(CS20); // clock speed
-	OCR2A = 25; // 80 KHz wave
-	OCR2B = 12; // 50% duty cycle
-	DDRD |= _BV(6); // Enable output
+	TCCR0A = _BV(COM0A1) | _BV(WGM01) | _BV(WGM00); // Fast PWM, top at OCR0A
+	TCCR0B = _BV(WGM02) | _BV(CS00); // clock speed
+	OCR0A = 25; // 80 KHz wave
+	OCR0B = 12; // 50% duty cycle
+	DDRB |= _BV(4); // Enable output on OC0B (PB4)
 	
 	// Setup 16-bit timer 1
-	TCCR1A = _BV(COM1A1) | _BV(COM1B1) | _BV(WGM11); // PWM output on OC1A, OC1B
+	TCCR1A = _BV(WGM11); // No PWM output
 	TCCR1B = _BV(WGM13) | _BV(WGM12) | _BV(CS11); // clk / 8, 16-bit Fast PWM
 	ICR1 = 50000; // Overflows every 20 ms
-	OCR1A = OCR1B = 2500; // Both servos near center
-	TIMSK1 = _BV(ICIE1); // Trigger interrupt when timer reaches TOP	
-	DDRD |= _BV(4) | _BV(5); // Enable PWM outputs
+	//TIMSK1 = _BV(ICIE1); // Trigger interrupt when timer reaches TOP	
 		
 	// Setup ADC
 	ADMUX = MUX_RANGER1; // VRef = AREF, Right adjust result, src = ADC0
@@ -53,6 +55,10 @@ void init(void) {
 
 	// Setup TWI
 	twi_init();	
+	DDRC &= ~_BV(0);
+	DDRC &= ~_BV(1);
+	PORTC |= _BV(0) | _BV(1); // Enable input pull-up resistors (~15K)
+	
 	
 	// Enable rising-edge external interrupts on INT0(pin 4) and INT1(pin 5)
 	EICRA = _BV(ISC11) | _BV(ISC10) | _BV(ISC01) | _BV(ISC00);
@@ -69,58 +75,85 @@ void init(void) {
 	DDRD |= _BV(1);
 	
 #endif
-		
+	
+	// Make PA3 an input	
+	DDRA &= ~_BV(3);
+	
 	// Setup and start following path
 	goal = track;
-	
-	// Set encoder count to zero
-	encoderLeft = encoderRight = 0;
-		
+
 	// Turn on interrupts
 	sei();
 	
-	// Initialize LED outputs
-	LEDL_DDR |= _BV(LEDL_PIN);
-	LEDR_DDR |= _BV(LEDR_PIN);
 }
 
 int main(void) {
+	// Initialize LED outputs
+	LEDL_DDR |= _BV(LEDL_PIN);
+	LEDR_DDR |= _BV(LEDR_PIN);
+	
+	LED_ON(LED_LEFT);
+	_delay_ms(500);
+	LED_OFF(LED_LEFT);
+	LED_ON(LED_RIGHT);
+	_delay_ms(500);
+	LED_OFF(LED_RIGHT);
+	_delay_ms(500);
+	LED_ON(LED_LEFT);
+	LED_ON(LED_RIGHT);
+	_delay_ms(1000);
+	LED_OFF(LED_LEFT);
+	LED_OFF(LED_RIGHT);
+	
 		
 	_delay_ms(STARTUP_DELAY);
 	
 	init();
 			
-	DEBUG_STRING("\n\n\nmaster starting...");
-	
+	DEBUG_STRING("\n\n\nmaster starting...\n");
+		
+	// Disable outputs on INT0, INT1
 	DDRD &= ~_BV(2);
 	DDRD &= ~_BV(3);
+	PORTD &= ~_BV(2);
+	PORTD &= ~_BV(3);
 		
-		
-	while(goal->distance != 0) {
+	// Set encoder count to zero
+	encoderLeft = encoderRight = 0;
+	leftDirection = rightDirection = 1;
+	
+	while((goal->distance != 0) || (goal->angle != 0)) {
 		
 		// Turn to face the next checkpoint
-		DEBUG_STRING("\nGoing to next checkpoint:");
+		DEBUG_STRING("\nGoing to next checkpoint:\n");
 		DEBUG_NUMBER("distance", goal->distance);
 		DEBUG_NUMBER("angle", goal->angle);
 			
-		if(goal->angle > 0) {
-			turnRightTo(goal->angle);
+		if(goal->direction == 1) {
+			DEBUG_STRING("turning left\n");
+			command(TURN_LEFT, TURN_SPEED);
+			turnTo(goal->angle);
 		} 
-		else if(goal->angle < 0) {
-			turnLeftTo(goal->angle);
+		else if(goal->direction == 2) {
+			DEBUG_STRING("turning right\n");
+			command(TURN_RIGHT, TURN_SPEED);
+			turnTo(goal->angle);
 		}
-						
+		
+		brake(255);
+				
+		DEBUG_STRING("driving straight\n");
 		driveUntil(goal->distance);
 		
 		//DEBUG_NUMBER("encoderLeft", encoderLeft);
 		//DEBUG_NUMBER("encoderRight", encoderRight);
 		
-		brake();
+		brake(BRAKE_SPEED);
 		
 		goal++;
 	}
 	
-	DEBUG_STRING("done track!");
+	DEBUG_STRING("done track!\n");
 	
 	// Finished, do nothing
 	while(1) {}
@@ -138,98 +171,90 @@ void command(uint8_t command, uint8_t value) {
 	} while(err);
 }
 
-void turnRightTo(int16_t degree) {
-	DEBUG_STRING("turning right");
-	uint32_t start = encoderLeft + encoderRight;
-	uint32_t end = start + (2 * degree / DEGREES_PER_TICK);
-	DEBUG_NUMBER("end", end);
-	command(TURN_RIGHT, 255);
+void turnTo(uint16_t degrees) {
+	uint32_t ticks = (uint32_t)((float)degrees * TICKS_PER_DEGREE);
+	DEBUG_NUMBER("goal ticks", ticks);
 	
-	while((encoderLeft + encoderRight) < end) { 
+	//uint32_t endLeft = encoderLeft + ticks;
+	//uint32_t endRight = encoderRight + ticks;
+	uint32_t endLeft = ticks;
+	uint32_t endRight = ticks;
+	
+	while((encoderLeft < endLeft) && (encoderRight < endRight)) {
 		DEBUG_NUMBER("encoderLeft", encoderLeft);
 		DEBUG_NUMBER("encoderRight", encoderRight);
 	}
 	
-	// Reset encoders to start value since the rover hasn't moved
-	encoderLeft = encoderRight = (start / 2);
-}
-
-void turnLeftTo(int16_t degree) {
-	DEBUG_STRING("turning left");
-	uint32_t start = encoderLeft + encoderRight;
-	uint32_t end = start + (2 * degree / DEGREES_PER_TICK);
-	DEBUG_NUMBER("end", end);
-	command(TURN_LEFT, 255);
-
-	while((encoderLeft + encoderRight) < end) { 
-		DEBUG_NUMBER("encoderLeft", encoderLeft);
-		DEBUG_NUMBER("encoderRight", encoderRight);
-	}
+	encoderLeft = encoderRight = 0;
+	//encoderLeft = encoderLeft - endLeft;
+	//encoderRight = encoderRight - endRight;
 	
-	// Reset encoders to start value since the rover hasn't moved
-	encoderLeft = encoderRight = (start / 2);
 }
 
 void driveUntil(uint16_t distance) {
-	uint32_t endLeft = encoderLeft + distance;
-	uint32_t endRight = encoderRight + distance;
+	//uint32_t endLeft = encoderLeft + distance;
+	//uint32_t endRight = encoderRight + distance;
+	uint32_t endLeft = distance;
+	uint32_t endRight = distance;
+	
+	DEBUG_NUMBER("goal distance", distance);
+	uint8_t high_speed = MOTOR_SPEED_HIGH;
+	uint8_t low_speed = MOTOR_SPEED_LOW;
 	
 	int32_t diff = 0;
 	
-	while((encoderLeft < endLeft) && (encoderRight < endRight)) {
-		if((encoderLeft - encoderRight) != diff) {
-			diff = encoderLeft - encoderRight;
-			command(FORWARD_LEFT, CONSTRAIN(255 - diff, 200, 255));
-			command(FORWARD_RIGHT, CONSTRAIN(255 + diff, 200, 255));
-		}
-	}
-}
-
-/*
-void driveUntil(uint16_t distance) {
-	DEBUG_NUMBER("Driving distance", distance);
-	uint8_t left_speed, right_speed;
-	left_speed = 255;
-	right_speed = 255;
-	uint32_t start = encoderLeft + encoderRight;
-	uint32_t end = start + (2 * distance);
-	DEBUG_NUMBER("end", end);
-	command(FORWARD, 255);
+	command(FORWARD, high_speed);
 	
-	while((encoderLeft + encoderRight) < end) { 
+	while((encoderLeft < endLeft) && (encoderRight < endRight)) {
+		DEBUG_NUMBER("encoderLeft", encoderLeft);
+		DEBUG_NUMBER("encoderRight", encoderRight);
 		
-		if(encoderLeft > encoderRight) {
-			right_speed = 255;
-			if(left_speed > 128) {
-				left_speed-=1;
-			}
-			command(FORWARD_LEFT, left_speed);
-			command(FORWARD_RIGHT, right_speed);
+		if((encoderLeft - encoderRight) != diff) {
+			diff = 2 * (encoderLeft - encoderRight);
+			uint8_t lspeed = CONSTRAIN(high_speed - diff, low_speed, high_speed);
+			uint8_t rspeed = CONSTRAIN(high_speed + diff, low_speed, high_speed);
+			command(FORWARD_LEFT, lspeed);
+			command(FORWARD_RIGHT, rspeed);
 		}
-		else if(encoderRight > encoderLeft) {
-			left_speed = 255;
-			if(right_speed > 128) {
-				right_speed-=1;
-			}
-			command(FORWARD_RIGHT, right_speed);
-			command(FORWARD_LEFT, left_speed);
-		}
-		_delay_ms(10);
-	}	
+		/*if((endLeft - encoderLeft < 100) || (endRight - encoderRight < 100)) {
+			high_speed = MOTOR_SPEED_HIGH2;
+			low_speed = MOTOR_SPEED_LOW2;
+		}*/
+	}
+	
+	encoderLeft = encoderRight = 0;
+	//encoderLeft = encoderLeft - endLeft;
+	//encoderRight = encoderRight - endRight;
 }
-*/
 
-void brake() {
-	DEBUG_STRING("Braking");
+
+void brake(uint8_t amount) {
+	command(BRAKE, amount);
+	_delay_ms(BRAKE_TIME);
+	DEBUG_NUMBER("encoderLeft after stopping", encoderLeft);
+	DEBUG_NUMBER("encoderRight after stopping", encoderRight);
+	
+	// Do error correction
+	/*if((encoderLeft - encoderRight) > 3) {
+		command(REVERSE_LEFT, 120);
+		while((encoderLeft - encoderRight) > 3) {};
+	}
+	else if((encoderRight - encoderLeft) > 3) {
+		command(REVERSE_RIGHT, 120);
+		while((encoderRight - encoderLeft) > 3) {};
+	}
 	command(BRAKE, 255);
 	_delay_ms(BRAKE_TIME);
+	*/
+	encoderLeft = encoderRight = 0;
 }
 
 
 
 SIGNAL(BADISR_vect) {
 	while(1) {
-	LED_TOGGLE(LED_RIGHT);
+	//LED_TOGGLE(LED_RIGHT);
+	DEBUG_STRING("WHAT THE FUCK");
 	_delay_ms(50);
 	}
 }
@@ -290,12 +315,14 @@ SIGNAL(ADC_vect) {
 
 SIGNAL(INT0_vect) {
 	encoderLeft++;
-	LED_TOGGLE(LED_LEFT);
+	//LED_TOGGLE(LED_LEFT);
+	LEDL_PORT ^= _BV(LEDL_PIN);
 }
 
 SIGNAL(INT1_vect) {
 	encoderRight++;
-	LED_TOGGLE(LED_RIGHT);
+	//LED_TOGGLE(LED_RIGHT);
+	LEDR_PORT ^= _BV(LEDR_PIN);
 }
 
 
@@ -360,21 +387,27 @@ void LED_TOGGLE(uint8_t led) {
 }
 
 void DEBUG_STRING(const char *str) {
-#if(SERIAL_ENABLED)
-	uart_puts(str);
-	uart_puts("\n\r");
-#endif
+	if(PINA & _BV(3) && (eeprom_p <= (uint8_t *)1950)) {
+		uint8_t len = strlen(str);
+		eeprom_write_block(str, eeprom_p, len);
+		eeprom_p += len;
+	}
 }
 
 void DEBUG_NUMBER(const char *name, uint16_t num) {
-#if(SERIAL_ENABLED)
-	char snum[8];
-	itoa(num, snum, 10);
-	uart_puts(name);
-	uart_putc('=');
-	uart_puts(snum);
-	uart_puts("\n\r");
-#endif
+	if(PINA & _BV(3) && (eeprom_p <= (uint8_t *)1950)) {
+		char snum[8];
+		snum[0] = '=';
+		itoa(num, snum+1, 10);
+		uint8_t len = strlen(name);
+		eeprom_write_block(name, eeprom_p, len);
+		eeprom_p += len;
+		len = strlen(snum);
+		eeprom_write_block(snum, eeprom_p, len);
+		eeprom_p += len;
+		eeprom_write_block("\n\r", eeprom_p, 2);
+		eeprom_p += 2;
+	}
 }
 
 
