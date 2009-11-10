@@ -36,11 +36,13 @@ void init(void) {
 	MOTORR1 = MOTORR2 = 0;
 
 	// Set 8-bit timer 2 and PWM output OC2B(PD3) at clock speed / 1024
+	/*
 	TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20); // Fast PWM, top at OCR2A
 	TCCR2B = _BV(WGM22) | _BV(CS21); // clock speed / 8
 	OCR2A = 250; // 10 KHz wave
 	OCR2B = 127; // 50% duty cycle
 	DDRD |= _BV(3); // Enable output
+	*/
 	
 	MOTORL_DDR |= _BV(MOTORL1_PIN) | _BV(MOTORL2_PIN);
 	MOTORR_DDR |= _BV(MOTORR1_PIN) | _BV(MOTORR2_PIN);
@@ -84,9 +86,12 @@ void init(void) {
 }
 
 int main(void) {
-	init();
-		
+	
+	LED_ON();
+	
 	_delay_ms(STARTUP_DELAY);
+	
+	init();
 	
 	DEBUG_STRING("\n\n\nStarting...");
 	/*
@@ -119,10 +124,10 @@ int main(void) {
 	*/
 	
 	while(1) {
-		if(debug_flag) {
-			debug_flag=0;
-			uart_puts(debug_buffer);
-		}
+		//if(debug_flag) {
+		//	debug_flag=0;
+		//	uart_puts(debug_buffer);
+		//}
 	}
 	
 	

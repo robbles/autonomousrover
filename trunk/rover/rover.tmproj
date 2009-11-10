@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>currentDocument</key>
-	<string>master/master.c</string>
+	<string>slave/slave.c</string>
 	<key>documents</key>
 	<array>
 		<dict>
@@ -13,21 +13,19 @@
 					<key>filename</key>
 					<string>master/master.c</string>
 					<key>lastUsed</key>
-					<date>2009-11-08T02:20:27Z</date>
-					<key>selected</key>
-					<true/>
+					<date>2009-11-09T05:36:14Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
 					<string>master/master.h</string>
 					<key>lastUsed</key>
-					<date>2009-11-08T02:20:27Z</date>
+					<date>2009-11-09T03:49:26Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
 					<string>master/Makefile</string>
 					<key>lastUsed</key>
-					<date>2009-11-07T23:40:37Z</date>
+					<date>2009-11-09T03:01:48Z</date>
 				</dict>
 			</array>
 			<key>expanded</key>
@@ -42,13 +40,15 @@
 					<key>filename</key>
 					<string>slave/slave.c</string>
 					<key>lastUsed</key>
-					<date>2009-11-08T02:19:42Z</date>
+					<date>2009-11-09T05:36:14Z</date>
+					<key>selected</key>
+					<true/>
 				</dict>
 				<dict>
 					<key>filename</key>
 					<string>slave/slave.h</string>
 					<key>lastUsed</key>
-					<date>2009-11-07T22:59:41Z</date>
+					<date>2009-11-09T01:45:58Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
@@ -69,7 +69,7 @@
 					<key>filename</key>
 					<string>twi/twi.c</string>
 					<key>lastUsed</key>
-					<date>2009-11-08T02:15:43Z</date>
+					<date>2009-11-08T05:01:45Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
@@ -90,7 +90,7 @@
 					<key>filename</key>
 					<string>uart/uart.c</string>
 					<key>lastUsed</key>
-					<date>2009-11-02T03:06:38Z</date>
+					<date>2009-11-09T00:57:40Z</date>
 				</dict>
 				<dict>
 					<key>filename</key>
@@ -119,47 +119,61 @@
 	<integer>200</integer>
 	<key>metaData</key>
 	<dict>
+		<key>master/Makefile</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>8</integer>
+				<key>line</key>
+				<integer>491</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
+			<integer>472</integer>
+		</dict>
 		<key>master/master.c</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>13</integer>
+				<integer>19</integer>
 				<key>line</key>
-				<integer>206</integer>
+				<integer>146</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>177</integer>
+			<integer>126</integer>
 		</dict>
 		<key>master/master.h</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>18</integer>
+				<integer>25</integer>
 				<key>line</key>
-				<integer>90</integer>
+				<integer>112</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>75</integer>
+			<integer>99</integer>
 		</dict>
 		<key>slave/slave.c</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>1</integer>
+				<integer>14</integer>
 				<key>line</key>
-				<integer>237</integer>
+				<integer>240</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>220</integer>
+			<integer>19</integer>
 		</dict>
 		<key>slave/slave.h</key>
 		<dict>
@@ -173,6 +187,20 @@
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
+			<integer>23</integer>
+		</dict>
+		<key>tracks/spintrack.h</key>
+		<dict>
+			<key>caret</key>
+			<dict>
+				<key>column</key>
+				<integer>16</integer>
+				<key>line</key>
+				<integer>16</integer>
+			</dict>
+			<key>firstVisibleColumn</key>
+			<integer>0</integer>
+			<key>firstVisibleLine</key>
 			<integer>0</integer>
 		</dict>
 		<key>tracks/squaretrack.h</key>
@@ -180,23 +208,23 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>17</integer>
+				<integer>2</integer>
 				<key>line</key>
-				<integer>29</integer>
+				<integer>21</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>3</integer>
+			<integer>5</integer>
 		</dict>
 		<key>tracks/straighttrack.h</key>
 		<dict>
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>18</integer>
+				<integer>0</integer>
 				<key>line</key>
-				<integer>8</integer>
+				<integer>21</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
@@ -208,38 +236,25 @@
 			<key>caret</key>
 			<dict>
 				<key>column</key>
-				<integer>11</integer>
-				<key>line</key>
-				<integer>37</integer>
-			</dict>
-			<key>firstVisibleColumn</key>
-			<integer>0</integer>
-			<key>firstVisibleLine</key>
-			<integer>1</integer>
-		</dict>
-		<key>twi/twi.c</key>
-		<dict>
-			<key>caret</key>
-			<dict>
-				<key>column</key>
 				<integer>15</integer>
 				<key>line</key>
-				<integer>164</integer>
+				<integer>27</integer>
 			</dict>
 			<key>firstVisibleColumn</key>
 			<integer>0</integer>
 			<key>firstVisibleLine</key>
-			<integer>165</integer>
+			<integer>10</integer>
 		</dict>
 	</dict>
 	<key>openDocuments</key>
 	<array>
 		<string>master/master.c</string>
-		<string>twi/twi.c</string>
 		<string>master/master.h</string>
+		<string>tracks/spintrack.h</string>
+		<string>tracks/zigzagtrack.h</string>
 		<string>tracks/squaretrack.h</string>
 		<string>tracks/straighttrack.h</string>
-		<string>tracks/zigzagtrack.h</string>
+		<string>master/Makefile</string>
 		<string>slave/slave.c</string>
 		<string>slave/slave.h</string>
 	</array>
